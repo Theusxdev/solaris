@@ -1,4 +1,5 @@
 import {
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -30,7 +31,25 @@ export default function ResumesScreen() {
   const navigation =
     useNavigation<NavigationProp<RootStackParamList>>();
 
-  const { savedResumes } = useSavedResumes();
+  const { savedResumes, deleteResume } = useSavedResumes();
+
+  function handleDeleteResume(resumeId: string) {
+    Alert.alert(
+      'Excluir currículo',
+      'Tem certeza que deseja excluir este currículo? Esta ação não pode ser desfeita.',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Excluir',
+          style: 'destructive',
+          onPress: () => deleteResume(resumeId),
+        },
+      ],
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -149,6 +168,15 @@ export default function ResumesScreen() {
                     >
                       <Text style={styles.primaryButtonText}>
                         Visualizar
+                      </Text>
+                    </Pressable>
+
+                    <Pressable
+                      style={styles.deleteButton}
+                      onPress={() => handleDeleteResume(savedResume.id)}
+                    >
+                      <Text style={styles.deleteButtonText}>
+                        Excluir
                       </Text>
                     </Pressable>
                   </View>
@@ -414,6 +442,23 @@ const styles = StyleSheet.create({
 
     fontSize: 13,
     fontWeight: '700',
+  },
+
+  deleteButton: {
+    height: 42,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#7A3030',
+    backgroundColor: '#2A1515',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 1,
+  },
+
+  deleteButtonText: {
+    color: '#FF6B6B',
+    fontSize: 14,
+    fontWeight: '600',
   },
 
   // CRIAR

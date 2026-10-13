@@ -1,14 +1,18 @@
 import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
+    Alert,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
 } from 'react-native';
 
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
+
 import {
-  useNavigation,
-  useRoute,
+    useNavigation,
+    useRoute,
 } from '@react-navigation/native';
 
 import { useSavedResumes } from '../../context/SavedResumesContext';
@@ -26,6 +30,438 @@ export default function ResumeDetailsScreen() {
     const savedResume = savedResumes.find(
         (item) => item.id === resumeId,
     );
+
+    async function handleGeneratePdf() {
+        if (!savedResume) {
+            Alert.alert(
+                'Erro',
+                'Currículo não encontrado.',
+            );
+            return;
+        }
+
+        const { data } = savedResume;
+
+        const html = `
+        <!DOCTYPE html>
+        <html>
+            <head>
+                <meta charset="UTF-8" />
+
+                <style>
+                    @page {
+                        margin: 20mm 15mm 25mm 15mm;
+                    }
+
+                    body {
+                        font-family: Arial, sans-serif;
+                        color: #222;
+                        padding: 40px;
+                    }
+
+                    .header {
+                        border-bottom: 2px solid #222;
+                        padding-bottom: 18px;
+                        margin-bottom: 25px;
+                    }
+
+                    h1 {
+                        font-size: 30px;
+                        margin: 0 0 10px 0;
+                        color: #111;
+                    }
+
+                    .contact {
+                        display: flex;
+                        flex-wrap: wrap;
+                        gap: 8px;
+                        color: #555;
+                        font-size: 12px;
+                    }
+
+                    .experience-item {
+                        margin-bottom: 22px;
+                        padding-left: 14px;
+                        border-left: 3px solid #222;
+                    }
+
+                    .experience-item,
+                    .education-item {
+                        break-inside: avoid;
+                        page-break-inside: avoid;
+                    }
+
+                    .education-item {
+                        margin-bottom: 18px;
+                        padding-left: 14px;
+                        border-left: 3px solid #222;
+                    }
+
+                    .education-header {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: flex-start;
+                        gap: 20px;
+                    }
+
+                    .institution {
+                        margin-top: 4px;
+                        font-size: 13px;
+                        color: #555;
+                    }
+
+                    .experience-header {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: flex-start;
+                        gap: 20px;
+                    }
+
+                    .skills {
+                        display: flex;
+                        flex-wrap: wrap;
+                        gap: 8px;
+                        margin-top: 10px;
+                    }
+
+                    .skill {
+                        display: inline-block;
+                        padding: 6px 10px;
+                        border: 1px solid #bbb;
+                        border-radius: 6px;
+                        background-color: #f5f5f5;
+                        color: #222;
+                        font-size: 12px;
+                    }
+
+                    .objective-position {
+                        font-size: 16px;
+                        font-weight: bold;
+                        color: #222;
+                        margin-bottom: 8px;
+                    }
+
+                    .objective-details {
+                        font-size: 12px;
+                        color: #666;
+                        margin-bottom: 12px;
+                    }
+
+                    .objective-description {
+                        font-size: 13px;
+                        line-height: 1.6;
+                        color: #333;
+                    }
+
+                    .item-title {
+                        font-weight: bold;
+                        font-size: 15px;
+                        color: #111;
+                    }
+
+                    .company {
+                        margin-top: 4px;
+                        font-size: 13px;
+                        color: #555;
+                    }
+
+                    .date {
+                        font-size: 11px;
+                        color: #666;
+                        white-space: nowrap;
+                    }
+
+                    .experience-description {
+                        margin-top: 8px;
+                        margin-bottom: 0;
+                        font-size: 13px;
+                        line-height: 1.5;
+                        color: #333;
+                    }
+
+                    .contact span:not(:last-child)::after {
+                        content: " • ";
+                        margin-left: 8px;
+                    }
+
+                    h2 {
+                        font-size: 18px;
+                        margin-top: 25px;
+                        border-bottom: 1px solid #ddd;
+                        padding-bottom: 5px;
+                        break-after: avoid;
+                        page-break-after: avoid;
+                    }
+
+                    p {
+                        font-size: 13px;
+                        line-height: 1.5;
+                    }
+
+                    .contact {
+                        color: #555;
+                        margin-bottom: 20px;
+                    }
+
+                    .item {
+                        margin-bottom: 15px;
+                    }
+
+                    .item-title {
+                        font-weight: bold;
+                        font-size: 14px;
+                    }
+
+                    .muted {
+                        color: #666;
+                    }
+
+                    ul {
+                        padding-left: 20px;
+                    }
+
+                    li {
+                        margin-bottom: 5px;
+                    }
+
+                    .page-footer {
+                        position: fixed;
+                        bottom: 15px;
+                        left: 0;
+                        right: 0;
+                        text-align: center;
+                        font-size: 10px;
+                        color: #888;
+                    }
+                </style>
+            </head>
+
+            <body>
+                <div class="page-footer">
+                    Currículo — ${data.personal.name || 'Currículo'}
+                </div>
+
+
+                <header class="header">
+                    <h1>
+                        ${data.personal.name || 'Currículo'}
+                    </h1>
+
+                    <div class="contact">
+                        ${data.personal.email
+                ? `<span>${data.personal.email}</span>`
+                : ''
+            }
+
+                        ${data.personal.phone
+                ? `<span>${data.personal.phone}</span>`
+                : ''
+            }
+
+                        ${data.personal.city
+                ? `<span>${data.personal.city}</span>`
+                : ''
+            }
+                    </div>
+                </header>
+
+                ${data.objective.desiredPosition ||
+                data.objective.area ||
+                data.objective.level ||
+                data.objective.description
+                ? `
+            <h2>Objetivo profissional</h2>
+
+            ${data.objective.desiredPosition
+                    ? `
+                        <div class="objective-position">
+                            ${data.objective.desiredPosition}
+                        </div>
+                    `
+                    : ''
+                }
+
+            ${data.objective.area ||
+                    data.objective.level
+                    ? `
+                        <div class="objective-details">
+                            ${data.objective.area
+                        ? `<strong>Área:</strong> ${data.objective.area}`
+                        : ''
+                    }
+
+                            ${data.objective.area &&
+                        data.objective.level
+                        ? ' • '
+                        : ''
+                    }
+
+                            ${data.objective.level
+                        ? `<strong>Nível:</strong> ${data.objective.level}`
+                        : ''
+                    }
+                        </div>
+                    `
+                    : ''
+                }
+
+            ${data.objective.description
+                    ? `
+                        <p class="objective-description">
+                            ${data.objective.description}
+                        </p>
+                    `
+                    : ''
+                }
+        `
+                : ''
+            }
+
+                ${data.experiences.length > 0
+                ? `
+                            <h2>Experiência profissional</h2>
+
+                                ${data.experiences
+                    .map(
+                        (experience) => `
+                                            <div class="experience-item">
+
+                                                <div class="experience-header">
+                                                    <div>
+                                                        <div class="item-title">
+                                                            ${experience.position}
+                                                        </div>
+
+                                                        <div class="company">
+                                                            ${experience.company}
+                                                        </div>
+                                                    </div>
+
+                                                    ${experience.startDate ||
+                                experience.endDate
+                                ? `
+                                                                <div class="date">
+                                                                    ${experience.startDate || ''}
+                                                                    ${experience.startDate ||
+                                    experience.endDate
+                                    ? ' — '
+                                    : ''
+                                }
+                                                                    ${experience.endDate || ''}
+                                                                </div>
+                                                            `
+                                : ''
+                            }
+                                                </div>
+
+                                                ${experience.description
+                                ? `
+                                                            <p class="experience-description">
+                                                                ${experience.description}
+                                                            </p>
+                                                        `
+                                : ''
+                            }
+
+                                            </div>
+                                        `,
+                    )
+                    .join('')}
+                        `
+                : ''
+            }
+
+                ${data.education.length > 0
+                ? `
+                            <h2>Formação acadêmica</h2>
+
+                            ${data.education
+                    .map(
+                        (education) => `
+                                        <div class="education-item">
+
+                                            <div class="education-header">
+                                                <div>
+                                                    <div class="item-title">
+                                                        ${education.course}
+                                                    </div>
+
+                                                    <div class="institution">
+                                                        ${education.institution}
+                                                    </div>
+                                                </div>
+
+                                                ${education.startDate ||
+                                education.endDate
+                                ? `
+                                                            <div class="date">
+                                                                ${education.startDate || ''}
+                                                                ${education.startDate ||
+                                    education.endDate
+                                    ? ' — '
+                                    : ''
+                                }
+                                                                ${education.endDate || ''}
+                                                            </div>
+                                                        `
+                                : ''
+                            }
+                                            </div>
+
+                                        </div>
+                                    `,
+                    )
+                    .join('')}
+                        `
+                : ''
+            }
+
+                ${data.skills.length > 0
+                ? `
+                            <h2>Habilidades</h2>
+
+                            <div class="skills">
+                                ${data.skills
+                    .map(
+                        (skill) =>
+                            `<span class="skill">${skill}</span>`,
+                    )
+                    .join('')}
+                            </div>
+                        `
+                : ''
+            }
+            </body>
+        </html>
+    `;
+
+        try {
+            const { uri } = await Print.printToFileAsync({
+                html,
+            });
+
+            const canShare = await Sharing.isAvailableAsync();
+
+            if (canShare) {
+                await Sharing.shareAsync(uri);
+            } else {
+                Alert.alert(
+                    'PDF gerado',
+                    'O PDF foi gerado, mas o compartilhamento não está disponível neste dispositivo.',
+                );
+            }
+        } catch (error) {
+            console.error(
+                'Erro ao gerar PDF:',
+                error,
+            );
+
+            Alert.alert(
+                'Erro',
+                'Não foi possível gerar o PDF.',
+            );
+        }
+    }
 
     const resume = savedResume?.data;
 
@@ -241,6 +677,15 @@ export default function ResumeDetailsScreen() {
                         </Text>
                     )}
                 </View>
+
+                <Pressable
+                    style={styles.pdfButton}
+                    onPress={handleGeneratePdf}
+                >
+                    <Text style={styles.pdfButtonText}>
+                        Gerar PDF
+                    </Text>
+                </Pressable>
             </ScrollView>
         </View>
     );
@@ -364,5 +809,21 @@ const styles = StyleSheet.create({
         color: '#F5B942',
         fontSize: 12,
         fontWeight: '600',
+    },
+
+    pdfButton: {
+        height: 48,
+        borderRadius: 11,
+        backgroundColor: '#F5B942',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 20,
+        marginBottom: 20,
+    },
+
+    pdfButtonText: {
+        color: '#0B0F14',
+        fontSize: 15,
+        fontWeight: '700',
     },
 });

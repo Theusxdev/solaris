@@ -2,10 +2,15 @@ import {
   createContext,
   ReactNode,
   useContext,
+  useEffect,
   useState,
 } from 'react';
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import { ResumeData } from './ResumeContext';
+
+const STORAGE_KEY = '@meuapp:saved_resumes';
 
 export interface SavedResume {
   id: string;
@@ -41,6 +46,56 @@ export function SavedResumesProvider({
 }: SavedResumesProviderProps) {
   const [savedResumes, setSavedResumes] =
     useState<SavedResume[]>([]);
+
+  const [isHydrated, setIsHydrated] =
+    useState(false);
+
+  useEffect(() => {
+    async function loadSavedResumes() {
+      try {
+        const storedResumes =
+          await AsyncStorage.getItem(STORAGE_KEY);
+
+        if (storedResumes) {
+          const parsedResumes: SavedResume[] =
+            JSON.parse(storedResumes);
+
+          setSavedResumes(parsedResumes);
+        }
+      } catch (error) {
+        console.error(
+          'Erro ao carregar currículos:',
+          error,
+        );
+      } finally {
+        setIsHydrated(true);
+      }
+    }
+
+    loadSavedResumes();
+  }, []);
+
+  useEffect(() => {
+    if (!isHydrated) {
+      return;
+    }
+
+    async function saveSavedResumes() {
+      try {
+        await AsyncStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify(savedResumes),
+        );
+      } catch (error) {
+        console.error(
+          'Erro ao salvar currículos:',
+          error,
+        );
+      }
+    }
+
+    saveSavedResumes();
+  }, [savedResumes, isHydrated]);
 
   function saveResume(
     resume: ResumeData,
